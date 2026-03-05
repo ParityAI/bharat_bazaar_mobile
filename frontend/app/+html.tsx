@@ -12,6 +12,7 @@ export default function Root({ children }: PropsWithChildren) {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
+        <title>BharatBazaar AI</title>
         <ScrollViewStyleReset />
         <style
           dangerouslySetInnerHTML={{

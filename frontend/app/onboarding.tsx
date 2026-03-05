@@ -14,9 +14,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, FontSizes, FontWeights } from '../src/constants/theme';
 import { onboardingPages, languageOptions } from '../src/constants/mockData';
 
-const { width, height } = Dimensions.get('window');
+const MAX_MOBILE_WIDTH = 390;
+const getResponsiveWidth = () => Math.min(Dimensions.get('window').width, MAX_MOBILE_WIDTH);
+const width = getResponsiveWidth();
+const height = Dimensions.get('window').height;
 
-const OnboardingPage = ({ page, index }: { page: typeof onboardingPages[0]; index: number }) => {
+const OnboardingPage = ({ page, index, pageWidth }: { page: typeof onboardingPages[0]; index: number; pageWidth: number }) => {
   const getIllustration = () => {
     switch (index) {
       case 0:
@@ -121,7 +124,7 @@ const OnboardingPage = ({ page, index }: { page: typeof onboardingPages[0]; inde
   };
 
   return (
-    <View style={styles.page}>
+    <View style={[styles.page, { width: pageWidth }]}>
       {getIllustration()}
       <View style={styles.textContainer}>
         <Text style={styles.pageTitle}>{page.title}</Text>
@@ -134,10 +137,16 @@ const OnboardingPage = ({ page, index }: { page: typeof onboardingPages[0]; inde
 export default function OnboardingScreen() {
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(0);
+  const [layoutWidth, setLayoutWidth] = useState(width);
   const scrollViewRef = useRef<ScrollView>(null);
 
+  const handleLayout = (event: any) => {
+    const w = event.nativeEvent.layout.width;
+    if (w > 0) setLayoutWidth(w);
+  };
+
   const handleScroll = (event: any) => {
-    const page = Math.round(event.nativeEvent.contentOffset.x / width);
+    const page = Math.round(event.nativeEvent.contentOffset.x / layoutWidth);
     setCurrentPage(page);
   };
 
@@ -150,7 +159,7 @@ export default function OnboardingScreen() {
   };
 
   const goToPage = (pageIndex: number) => {
-    scrollViewRef.current?.scrollTo({ x: pageIndex * width, animated: true });
+    scrollViewRef.current?.scrollTo({ x: pageIndex * layoutWidth, animated: true });
   };
 
   return (
@@ -167,10 +176,11 @@ export default function OnboardingScreen() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onScroll={handleScroll}
+        onLayout={handleLayout}
         scrollEventThrottle={16}
       >
         {onboardingPages.map((page, index) => (
-          <OnboardingPage key={page.id} page={page} index={index} />
+          <OnboardingPage key={page.id} page={page} index={index} pageWidth={layoutWidth} />
         ))}
       </ScrollView>
 
@@ -227,7 +237,6 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.medium,
   },
   page: {
-    width,
     flex: 1,
     paddingHorizontal: Spacing.lg,
   },

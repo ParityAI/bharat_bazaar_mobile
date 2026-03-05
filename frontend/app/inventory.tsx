@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -172,7 +173,9 @@ export default function InventoryScreen() {
                 </View>
                 
                 {(item.status === 'low' || item.status === 'out') && (
-                  <TouchableOpacity style={styles.reorderButton}>
+                  <TouchableOpacity style={styles.reorderButton} onPress={() => {
+                    Alert.alert('📦 Order Placed!', `Reorder request for ${item.name} sent to wholesaler.`, [{ text: 'OK' }]);
+                  }}>
                     <Text style={styles.reorderButtonText}>
                       {item.status === 'out' ? 'Order Now' : 'Reorder'}
                     </Text>
@@ -206,7 +209,9 @@ export default function InventoryScreen() {
       </View>
 
       {/* FAB */}
-      <TouchableOpacity style={styles.fab}>
+      <TouchableOpacity style={styles.fab} onPress={() => {
+        Alert.alert('Add Item', 'In the full version, scan a bill or manually add items here.', [{ text: 'OK' }]);
+      }}>
         <Ionicons name="add" size={28} color={Colors.textWhite} />
       </TouchableOpacity>
     </SafeAreaView>

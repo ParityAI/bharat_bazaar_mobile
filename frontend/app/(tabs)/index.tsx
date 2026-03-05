@@ -9,6 +9,7 @@ import {
   Platform,
   Animated,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,7 +26,9 @@ import {
   weeklyChartData,
 } from '../../src/constants/mockData';
 
-const { width } = Dimensions.get('window');
+const MAX_MOBILE_WIDTH = 390;
+const getResponsiveWidth = () => Math.min(Dimensions.get('window').width, MAX_MOBILE_WIDTH);
+const width = getResponsiveWidth();
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -65,6 +68,7 @@ const WeeklyChart = () => {
 export default function DashboardScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
+  const [showAiInsight, setShowAiInsight] = useState(true);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -181,26 +185,31 @@ export default function DashboardScreen() {
         </ScrollView>
 
         {/* AI Insight Card */}
-        <View style={styles.aiInsightCard}>
-          <View style={styles.aiInsightHeader}>
-            <View style={styles.aiIconContainer}>
-              <Ionicons name="bulb" size={20} color={Colors.accent} />
+        {showAiInsight && (
+          <View style={styles.aiInsightCard}>
+            <View style={styles.aiInsightHeader}>
+              <View style={styles.aiIconContainer}>
+                <Ionicons name="bulb" size={20} color={Colors.accent} />
+              </View>
+              <Text style={styles.aiInsightTitle}>AI Insights</Text>
             </View>
-            <Text style={styles.aiInsightTitle}>AI Insights</Text>
+            <Text style={styles.aiInsightText}>
+              {aiInsight.icon} {aiInsight.message}
+            </Text>
+            <View style={styles.aiInsightActions}>
+              <TouchableOpacity style={styles.aiActionOutline} onPress={() => setShowAiInsight(false)}>
+                <Text style={styles.aiActionOutlineText}>Dismiss</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.aiActionFilled} onPress={() => {
+                Alert.alert('📦 Order Placed!', 'Extra Dal & Rice stock order has been placed with your wholesaler.', [{ text: 'OK' }]);
+                setShowAiInsight(false);
+              }}>
+                <Text style={styles.aiActionFilledText}>Stock Now</Text>
+                <Ionicons name="arrow-forward" size={16} color={Colors.textWhite} />
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={styles.aiInsightText}>
-            {aiInsight.icon} {aiInsight.message}
-          </Text>
-          <View style={styles.aiInsightActions}>
-            <TouchableOpacity style={styles.aiActionOutline}>
-              <Text style={styles.aiActionOutlineText}>Dismiss</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.aiActionFilled}>
-              <Text style={styles.aiActionFilledText}>Stock Now</Text>
-              <Ionicons name="arrow-forward" size={16} color={Colors.textWhite} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        )}
 
         {/* Top Sellers */}
         <View style={styles.sectionContainer}>
@@ -243,7 +252,9 @@ export default function DashboardScreen() {
             </View>
           </View>
           <Text style={styles.festivalSuggestion}>{festivalAlert.suggestion}</Text>
-          <TouchableOpacity style={styles.festivalButton}>
+          <TouchableOpacity style={styles.festivalButton} onPress={() => {
+            Alert.alert('🎆 Festival Prep', 'Diwali stock checklist has been added to your inventory planner!', [{ text: 'View', onPress: () => router.push('/inventory') }, { text: 'Later' }]);
+          }}>
             <Text style={styles.festivalButtonText}>Prepare Stock</Text>
             <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
           </TouchableOpacity>

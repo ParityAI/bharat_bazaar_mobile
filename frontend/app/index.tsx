@@ -2,9 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, FontSizes, FontWeights } from '../src/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import { BrandLogo } from '../src/components/BrandLogo';
 
-const { width } = Dimensions.get('window');
+const MAX_MOBILE_WIDTH = 390;
+const width = Math.min(Dimensions.get('window').width, MAX_MOBILE_WIDTH);
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -54,9 +55,9 @@ export default function SplashScreen() {
           },
         ]}
       >
-        {/* Store Icon */}
+        {/* Brand Logo */}
         <View style={styles.iconContainer}>
-          <Ionicons name="storefront" size={80} color={Colors.textWhite} />
+          <BrandLogo size={80} color={Colors.textWhite} />
         </View>
 
         {/* App Name */}

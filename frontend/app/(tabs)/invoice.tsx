@@ -143,7 +143,9 @@ export default function InvoiceScreen() {
                 </View>
               ))}
 
-              <TouchableOpacity style={styles.addItemButton}>
+              <TouchableOpacity style={styles.addItemButton} onPress={() => {
+                Alert.alert('Demo Mode', 'In the full version, you can add custom items to your invoice.', [{ text: 'OK' }]);
+              }}>
                 <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
                 <Text style={styles.addItemText}>Add Another Item</Text>
               </TouchableOpacity>
@@ -279,7 +281,11 @@ export default function InvoiceScreen() {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.emailButton}>
+            <TouchableOpacity style={styles.emailButton} onPress={() => {
+              Alert.alert('Email Sent!', 'Invoice emailed to customer successfully.', [{ text: 'OK' }]);
+              setShowSuccess(true);
+              setTimeout(() => setShowSuccess(false), 3000);
+            }}>
               <Ionicons name="mail-outline" size={20} color={Colors.secondary} />
               <Text style={styles.emailButtonText}>Email Invoice</Text>
             </TouchableOpacity>

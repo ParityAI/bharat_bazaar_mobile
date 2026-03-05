@@ -142,7 +142,7 @@ export default function ScannerScreen() {
               <Text style={styles.primaryButtonText}>Take Photo</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.secondaryButton}>
+            <TouchableOpacity style={styles.secondaryButton} onPress={handleScan}>
               <Ionicons name="folder-outline" size={22} color={Colors.primary} />
               <Text style={styles.secondaryButtonText}>Upload from Gallery</Text>
             </TouchableOpacity>
