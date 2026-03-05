@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,13 @@ import {
   ActivityIndicator,
   Modal,
   FlatList,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius, FontSizes, FontWeights } from '../src/constants/theme';
-import { products, cities, pricingStrategies, competitorPrices } from '../src/constants/mockData';
+import { Colors, Spacing, BorderRadius, FontSizes, FontWeights, Shadows } from '../../src/constants/theme';
+import { products, cities, pricingStrategies, competitorPrices } from '../../src/constants/mockData';
+import { AnimatedNumber } from '../../src/components/AnimatedNumber';
 
 export default function PricingScreen() {
   const [selectedProduct, setSelectedProduct] = useState(products[0]);
@@ -24,11 +26,40 @@ export default function PricingScreen() {
   const [showResults, setShowResults] = useState(false);
   const [showProductPicker, setShowProductPicker] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
+  
+  const fadeAnims = useRef(pricingStrategies.map(() => new Animated.Value(0))).current;
+  const slideAnims = useRef(pricingStrategies.map(() => new Animated.Value(30))).current;
+
+  useEffect(() => {
+    if (showResults) {
+      // Stagger animation for strategy cards
+      pricingStrategies.forEach((_, index) => {
+        Animated.parallel([
+          Animated.timing(fadeAnims[index], {
+            toValue: 1,
+            duration: 400,
+            delay: index * 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(slideAnims[index], {
+            toValue: 0,
+            duration: 400,
+            delay: index * 150,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+    } else {
+      fadeAnims.forEach(anim => anim.setValue(0));
+      slideAnims.forEach(anim => anim.setValue(30));
+    }
+  }, [showResults]);
 
   const formatCurrency = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
 
   const handleAnalyze = () => {
     setIsAnalyzing(true);
+    setShowResults(false);
     setTimeout(() => {
       setIsAnalyzing(false);
       setShowResults(true);
@@ -42,56 +73,34 @@ export default function PricingScreen() {
     setShowProductPicker(false);
   };
 
-  const renderPickerModal = (
-    visible: boolean,
-    onClose: () => void,
-    title: string,
-    data: any[],
-    renderItem: (item: any) => JSX.Element
-  ) => (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{title}</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color={Colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            data={data}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => renderItem(item)}
-          />
-        </View>
-      </View>
-    </Modal>
-  );
+  const maxCompetitorPrice = Math.max(competitorPrices.amazon, competitorPrices.bigBasket, competitorPrices.localAvg);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Smart Pricing</Text>
-        <Text style={styles.headerSubtitle}>AI-powered pricing strategies</Text>
+        <View style={styles.headerIcon}>
+          <Ionicons name="pricetag" size={24} color={Colors.accent} />
+        </View>
+        <View>
+          <Text style={styles.headerTitle}>💰 Smart Pricing</Text>
+          <Text style={styles.headerSubtitle}>AI-powered pricing strategies</Text>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Input Section */}
-        <View style={styles.inputSection}>
-          {/* Product Selector */}
+        {/* Input Card */}
+        <View style={styles.inputCard}>
+          {/* Product */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Product</Text>
-            <TouchableOpacity
-              style={styles.pickerButton}
-              onPress={() => setShowProductPicker(true)}
-            >
+            <TouchableOpacity style={styles.picker} onPress={() => setShowProductPicker(true)}>
               <Text style={styles.pickerText}>{selectedProduct.name}</Text>
               <Ionicons name="chevron-down" size={20} color={Colors.textMuted} />
             </TouchableOpacity>
           </View>
 
-          {/* Price Inputs */}
+          {/* Price Row */}
           <View style={styles.priceRow}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
               <Text style={styles.inputLabel}>Cost Price</Text>
@@ -102,7 +111,6 @@ export default function PricingScreen() {
                   value={costPrice}
                   onChangeText={setCostPrice}
                   keyboardType="numeric"
-                  placeholder="0"
                   placeholderTextColor={Colors.textMuted}
                 />
               </View>
@@ -116,21 +124,18 @@ export default function PricingScreen() {
                   value={sellingPrice}
                   onChangeText={setSellingPrice}
                   keyboardType="numeric"
-                  placeholder="0"
                   placeholderTextColor={Colors.textMuted}
                 />
               </View>
             </View>
           </View>
 
-          {/* City Selector */}
+          {/* City */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>City</Text>
-            <TouchableOpacity
-              style={styles.pickerButton}
-              onPress={() => setShowCityPicker(true)}
-            >
-              <Text style={styles.pickerText}>{selectedCity}</Text>
+            <TouchableOpacity style={styles.picker} onPress={() => setShowCityPicker(true)}>
+              <Ionicons name="location-outline" size={18} color={Colors.textMuted} />
+              <Text style={[styles.pickerText, { marginLeft: 8 }]}>{selectedCity}</Text>
               <Ionicons name="chevron-down" size={20} color={Colors.textMuted} />
             </TouchableOpacity>
           </View>
@@ -144,7 +149,7 @@ export default function PricingScreen() {
             {isAnalyzing ? (
               <>
                 <ActivityIndicator color={Colors.textWhite} />
-                <Text style={styles.analyzeButtonText}>Analyzing...</Text>
+                <Text style={styles.analyzeButtonText}>🧠 Analyzing market data...</Text>
               </>
             ) : (
               <>
@@ -155,18 +160,22 @@ export default function PricingScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Results Section */}
+        {/* Results */}
         {showResults && (
           <>
-            {/* Strategy Cards */}
             <Text style={styles.sectionTitle}>Recommended Strategies</Text>
-            {pricingStrategies.map(strategy => (
-              <View
+
+            {pricingStrategies.map((strategy, index) => (
+              <Animated.View
                 key={strategy.id}
                 style={[
                   styles.strategyCard,
-                  { backgroundColor: strategy.bgColor, borderColor: strategy.color + '40' },
-                  strategy.recommended && styles.strategyCardRecommended,
+                  { 
+                    backgroundColor: strategy.bgColor,
+                    borderLeftColor: strategy.color,
+                    opacity: fadeAnims[index],
+                    transform: [{ translateY: slideAnims[index] }]
+                  },
                 ]}
               >
                 {strategy.recommended && (
@@ -175,9 +184,10 @@ export default function PricingScreen() {
                     <Text style={styles.recommendedText}>RECOMMENDED</Text>
                   </View>
                 )}
+                
                 <View style={styles.strategyHeader}>
                   <Text style={[styles.strategyName, { color: strategy.color }]}>
-                    {strategy.name}
+                    {strategy.emoji} {strategy.name}
                   </Text>
                   <View style={[styles.confidenceBadge, { backgroundColor: strategy.color + '20' }]}>
                     <Text style={[styles.confidenceText, { color: strategy.color }]}>
@@ -185,106 +195,124 @@ export default function PricingScreen() {
                     </Text>
                   </View>
                 </View>
+
                 <View style={styles.strategyPricing}>
                   <View>
                     <Text style={styles.strategyPriceLabel}>Suggested Price</Text>
                     <Text style={[styles.strategyPrice, { color: strategy.color }]}>
-                      {formatCurrency(strategy.price)}
+                      ₹{strategy.price}
                     </Text>
                   </View>
-                  <View>
+                  <View style={styles.marginContainer}>
                     <Text style={styles.strategyPriceLabel}>Margin</Text>
                     <Text style={[styles.strategyMargin, { color: strategy.color }]}>
                       {strategy.margin}%
                     </Text>
                   </View>
                 </View>
+
                 <Text style={styles.strategyDescription}>{strategy.description}</Text>
-              </View>
+
+                {/* Confidence Bar */}
+                <View style={styles.confidenceBar}>
+                  <View style={[styles.confidenceFill, { width: `${strategy.confidence}%`, backgroundColor: strategy.color }]} />
+                </View>
+              </Animated.View>
             ))}
 
-            {/* Competitor Prices */}
+            {/* Competitor Comparison */}
             <View style={styles.competitorCard}>
               <View style={styles.competitorHeader}>
                 <Ionicons name="stats-chart" size={20} color={Colors.secondary} />
-                <Text style={styles.competitorTitle}>Market Analysis</Text>
+                <Text style={styles.competitorTitle}>Market Prices</Text>
               </View>
-              <View style={styles.competitorPrices}>
-                <View style={styles.competitorItem}>
-                  <Text style={styles.competitorName}>Amazon</Text>
-                  <Text style={styles.competitorPrice}>{formatCurrency(competitorPrices.amazon)}</Text>
+              
+              {[{name: 'Amazon', price: competitorPrices.amazon}, {name: 'BigBasket', price: competitorPrices.bigBasket}, {name: 'Local Avg', price: competitorPrices.localAvg}].map(comp => (
+                <View key={comp.name} style={styles.competitorRow}>
+                  <Text style={styles.competitorName}>{comp.name}</Text>
+                  <View style={styles.competitorBarContainer}>
+                    <View style={[styles.competitorBar, { width: `${(comp.price / maxCompetitorPrice) * 100}%` }]} />
+                  </View>
+                  <Text style={styles.competitorPrice}>{formatCurrency(comp.price)}</Text>
                 </View>
-                <View style={styles.competitorItem}>
-                  <Text style={styles.competitorName}>BigBasket</Text>
-                  <Text style={styles.competitorPrice}>{formatCurrency(competitorPrices.bigBasket)}</Text>
-                </View>
-                <View style={styles.competitorItem}>
-                  <Text style={styles.competitorName}>Local Avg</Text>
-                  <Text style={styles.competitorPrice}>{formatCurrency(competitorPrices.localAvg)}</Text>
-                </View>
-              </View>
+              ))}
             </View>
 
             {/* Festival Alert */}
             <View style={styles.festivalAlert}>
-              <Text style={styles.festivalAlertIcon}>🎆</Text>
-              <View style={styles.festivalAlertContent}>
-                <Text style={styles.festivalAlertTitle}>Diwali Demand Surge</Text>
-                <Text style={styles.festivalAlertText}>
-                  Consider Premium strategy for next 2 weeks
-                </Text>
+              <Text style={styles.festivalEmoji}>🎆</Text>
+              <View style={styles.festivalContent}>
+                <Text style={styles.festivalTitle}>Diwali Demand Surge</Text>
+                <Text style={styles.festivalText}>Premium strategy recommended for next 2 weeks</Text>
               </View>
             </View>
+
+            {/* Apply Button */}
+            <TouchableOpacity style={styles.applyButton}>
+              <Text style={styles.applyButtonText}>Apply Balanced Price</Text>
+            </TouchableOpacity>
           </>
         )}
       </ScrollView>
 
       {/* Product Picker Modal */}
-      {renderPickerModal(
-        showProductPicker,
-        () => setShowProductPicker(false),
-        'Select Product',
-        products,
-        (item) => (
-          <TouchableOpacity
-            style={[
-              styles.pickerItem,
-              selectedProduct.id === item.id && styles.pickerItemSelected,
-            ]}
-            onPress={() => handleProductSelect(item)}
-          >
-            <Text style={styles.pickerItemText}>{item.name}</Text>
-            {selectedProduct.id === item.id && (
-              <Ionicons name="checkmark" size={20} color={Colors.primary} />
-            )}
-          </TouchableOpacity>
-        )
-      )}
+      <Modal visible={showProductPicker} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Product</Text>
+              <TouchableOpacity onPress={() => setShowProductPicker(false)}>
+                <Ionicons name="close" size={24} color={Colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={products}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.modalItem, selectedProduct.id === item.id && styles.modalItemSelected]}
+                  onPress={() => handleProductSelect(item)}
+                >
+                  <Text style={styles.modalItemText}>{item.name}</Text>
+                  {selectedProduct.id === item.id && (
+                    <Ionicons name="checkmark" size={20} color={Colors.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
 
       {/* City Picker Modal */}
-      {renderPickerModal(
-        showCityPicker,
-        () => setShowCityPicker(false),
-        'Select City',
-        cities,
-        (item) => (
-          <TouchableOpacity
-            style={[
-              styles.pickerItem,
-              selectedCity === item && styles.pickerItemSelected,
-            ]}
-            onPress={() => {
-              setSelectedCity(item);
-              setShowCityPicker(false);
-            }}
-          >
-            <Text style={styles.pickerItemText}>{item}</Text>
-            {selectedCity === item && (
-              <Ionicons name="checkmark" size={20} color={Colors.primary} />
-            )}
-          </TouchableOpacity>
-        )
-      )}
+      <Modal visible={showCityPicker} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select City</Text>
+              <TouchableOpacity onPress={() => setShowCityPicker(false)}>
+                <Ionicons name="close" size={24} color={Colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={cities}
+              keyExtractor={item => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.modalItem, selectedCity === item && styles.modalItemSelected]}
+                  onPress={() => { setSelectedCity(item); setShowCityPicker(false); }}
+                >
+                  <Ionicons name="location" size={18} color={selectedCity === item ? Colors.primary : Colors.textMuted} />
+                  <Text style={[styles.modalItemText, { marginLeft: 8 }]}>{item}</Text>
+                  {selectedCity === item && (
+                    <Ionicons name="checkmark" size={20} color={Colors.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -295,21 +323,31 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     backgroundColor: Colors.card,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
+  headerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.accentLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.sm,
+  },
   headerTitle: {
-    fontSize: FontSizes.xxl,
+    fontSize: FontSizes.xl,
     fontWeight: FontWeights.bold,
     color: Colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    marginTop: 4,
+    color: Colors.textMuted,
   },
   scrollView: {
     flex: 1,
@@ -317,11 +355,12 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.md,
   },
-  inputSection: {
+  inputCard: {
     backgroundColor: Colors.card,
+    borderRadius: BorderRadius.xl,
     padding: Spacing.md,
-    borderRadius: BorderRadius.md,
     marginBottom: Spacing.lg,
+    ...Shadows.md,
   },
   inputGroup: {
     marginBottom: Spacing.md,
@@ -332,18 +371,19 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: Spacing.xs,
   },
-  pickerButton: {
+  picker: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: Colors.background,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   pickerText: {
+    flex: 1,
     fontSize: FontSizes.md,
     color: Colors.textPrimary,
   },
@@ -356,7 +396,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.background,
     paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -364,7 +404,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.semibold,
     color: Colors.textPrimary,
-    marginRight: 4,
   },
   priceTextInput: {
     flex: 1,
@@ -372,21 +411,18 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.semibold,
     color: Colors.textPrimary,
     paddingVertical: Spacing.sm,
+    marginLeft: 4,
   },
   analyzeButton: {
-    backgroundColor: Colors.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.accent,
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     gap: Spacing.sm,
     marginTop: Spacing.sm,
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    ...Shadows.md,
   },
   analyzeButtonText: {
     fontSize: FontSizes.lg,
@@ -401,12 +437,10 @@ const styles = StyleSheet.create({
   },
   strategyCard: {
     padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.xl,
     marginBottom: Spacing.md,
-    borderWidth: 1,
-  },
-  strategyCardRecommended: {
-    borderWidth: 2,
+    borderLeftWidth: 4,
+    ...Shadows.sm,
   },
   recommendedBadge: {
     flexDirection: 'row',
@@ -455,6 +489,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xxl,
     fontWeight: FontWeights.bold,
   },
+  marginContainer: {
+    alignItems: 'flex-end',
+  },
   strategyMargin: {
     fontSize: FontSizes.xxl,
     fontWeight: FontWeights.bold,
@@ -462,12 +499,24 @@ const styles = StyleSheet.create({
   strategyDescription: {
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+  },
+  confidenceBar: {
+    height: 6,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  confidenceFill: {
+    height: '100%',
+    borderRadius: 3,
   },
   competitorCard: {
     backgroundColor: Colors.card,
+    borderRadius: BorderRadius.xl,
     padding: Spacing.md,
-    borderRadius: BorderRadius.md,
     marginBottom: Spacing.md,
+    ...Shadows.md,
   },
   competitorHeader: {
     flexDirection: 'row',
@@ -480,47 +529,73 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.semibold,
     color: Colors.textPrimary,
   },
-  competitorPrices: {
+  competitorRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  competitorItem: {
     alignItems: 'center',
+    marginBottom: Spacing.sm,
   },
   competitorName: {
+    width: 70,
     fontSize: FontSizes.sm,
-    color: Colors.textMuted,
-    marginBottom: 4,
+    color: Colors.textSecondary,
+  },
+  competitorBarContainer: {
+    flex: 1,
+    height: 8,
+    backgroundColor: Colors.divider,
+    borderRadius: 4,
+    marginHorizontal: Spacing.sm,
+    overflow: 'hidden',
+  },
+  competitorBar: {
+    height: '100%',
+    backgroundColor: Colors.secondary,
+    borderRadius: 4,
   },
   competitorPrice: {
-    fontSize: FontSizes.lg,
+    width: 60,
+    fontSize: FontSizes.sm,
     fontWeight: FontWeights.semibold,
     color: Colors.textPrimary,
+    textAlign: 'right',
   },
   festivalAlert: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.warningLight,
     padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.xl,
     borderWidth: 1,
     borderColor: Colors.warning + '40',
+    marginBottom: Spacing.md,
   },
-  festivalAlertIcon: {
-    fontSize: 28,
+  festivalEmoji: {
+    fontSize: 32,
     marginRight: Spacing.sm,
   },
-  festivalAlertContent: {
+  festivalContent: {
     flex: 1,
   },
-  festivalAlertTitle: {
+  festivalTitle: {
     fontSize: FontSizes.md,
     fontWeight: FontWeights.semibold,
     color: Colors.textPrimary,
   },
-  festivalAlertText: {
+  festivalText: {
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
+  },
+  applyButton: {
+    backgroundColor: Colors.success,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    ...Shadows.md,
+  },
+  applyButtonText: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.semibold,
+    color: Colors.textWhite,
   },
   modalOverlay: {
     flex: 1,
@@ -529,8 +604,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: Colors.card,
-    borderTopLeftRadius: BorderRadius.lg,
-    borderTopRightRadius: BorderRadius.lg,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
     maxHeight: '60%',
   },
   modalHeader: {
@@ -546,18 +621,18 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.semibold,
     color: Colors.textPrimary,
   },
-  pickerItem: {
+  modalItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     padding: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
   },
-  pickerItemSelected: {
+  modalItemSelected: {
     backgroundColor: Colors.primaryLight,
   },
-  pickerItemText: {
+  modalItemText: {
+    flex: 1,
     fontSize: FontSizes.md,
     color: Colors.textPrimary,
   },

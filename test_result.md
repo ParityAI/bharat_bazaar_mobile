@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: Build BharatBazaar AI mobile app prototype with 5 screens - Dashboard, Bill Scanner, Smart Pricing, Munim-ji Chat, and Invoice Generator for Indian kirana store owners.
+user_problem_statement: Build premium mobile-first web app for BharatBazaar AI with splash screen, onboarding, setup, dashboard, bill scanner, smart pricing, munim-ji chat, invoice generator, notifications, and inventory screens for Indian kirana store owners - CRED/Razorpay level design quality.
 
 frontend:
   - task: "Dashboard Screen"

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius, FontSizes, FontWeights } from '../src/constants/theme';
-import { chatMessages as initialMessages, languageOptions, quickChips, storeOwner } from '../src/constants/mockData';
+import { Colors, Spacing, BorderRadius, FontSizes, FontWeights, Shadows } from '../../src/constants/theme';
+import { chatMessages as initialMessages, languageOptions, quickChips, storeOwner } from '../../src/constants/mockData';
 
 interface ChatMessage {
   id: string;
@@ -23,9 +24,12 @@ interface ChatMessage {
 }
 
 const aiResponses: { [key: string]: string } = {
-  'stock check': `Rajesh ji, aapka stock status:\n\n• Basmati Rice 5kg: 45 units ✅\n• Toor Dal 1kg: 12 units ⚠️ Low\n• Sugar 1kg: 78 units ✅\n• Maggi 4-pack: 5 units ⚠️ Low\n\nSuggestion: Dal aur Maggi ka order karein!`,
-  "today's sales": `Aaj ki sales summary:\n\n• Total Revenue: ₹12,850\n• Items Sold: 47\n• Top Seller: Basmati Rice (12 units)\n• Average Bill: ₹273\n\nKal se 18% zyada hai! 📈`,
-  'price suggestion': `Popular products ke liye price suggestions:\n\n• Basmati Rice 5kg: ₹365 (Balanced strategy)\n• Toor Dal 1kg: ₹155 (Competitive)\n• Sugar 1kg: ₹48 (Premium)\n\nDiwali special: 5-10% premium add karein!`,
+  'price': `Rajesh ji, Basmati Rice 5kg market update:\n\n📊 Prices:\n• Amazon: ₹389\n• BigBasket: ₹345\n• Local avg: ₹355\n\nAapka price ₹350 competitive hai! 👍\n\n💡 Diwali ke liye ₹375-380 consider karein.`,
+  'stock': `${storeOwner.name} ji, aapka stock status:\n\n✅ Basmati Rice 5kg: 45 units\n⚠️ Toor Dal 1kg: 2 units (Low!)\n✅ Sugar 1kg: 78 units\n⚠️ Maggi 4-pack: 5 units (Low!)\n\n🚨 Suggestion: Dal aur Maggi ka order karein!`,
+  'weather': `🌧️ Lucknow Weather Update:\nKal se barish ka forecast hai.\n\n📈 Business Impact:\n• Dal demand +15% ↑\n• Rice demand +12% ↑\n• Umbrella/raincoat +40% ↑\n\n👉 Extra stock rakhein dry goods ka.`,
+  'festival': `🎆 Diwali Preparation Guide:\n\n📊 Last Year Data:\n• Sales +45% vs normal\n• Top sellers: Sweets, Dry fruits, Diyas\n\n📋 Stock Recommendations:\n• Kaju Katli: 20kg\n• Almonds: 15kg\n• Decorative items: 50 units\n\nOrder karna hai toh "order festival" bolein!`,
+  'sales': `Aaj ki sales summary:\n\n💰 Total Revenue: ₹12,850\n📦 Items Sold: 47\n🏆 Top Seller: Basmati Rice (12 units)\n📈 Average Bill: ₹273\n\n🚀 Kal se 18% zyada hai! Bahut accha!`,
+  'order': `Order placement ready!\n\n🛒 Available Wholesalers:\n• Vijay Wholesale - Dal specialist\n• Sharma Traders - Rice & Grains\n• Metro Cash & Carry - FMCG\n\nKaunsa item order karna hai?`,
 };
 
 export default function ChatScreen() {
@@ -33,6 +37,7 @@ export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('hi');
   const [isTyping, setIsTyping] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const sendMessage = (text: string) => {
@@ -49,13 +54,11 @@ export default function ChatScreen() {
     setInputText('');
     Keyboard.dismiss();
 
-    // Simulate AI response
     setIsTyping(true);
     setTimeout(() => {
       const lowerText = text.toLowerCase();
       let aiResponse = '';
 
-      // Check for quick chips
       for (const [key, value] of Object.entries(aiResponses)) {
         if (lowerText.includes(key)) {
           aiResponse = value;
@@ -63,9 +66,8 @@ export default function ChatScreen() {
         }
       }
 
-      // Default response
       if (!aiResponse) {
-        aiResponse = `${storeOwner.name} ji, main aapki madad ke liye ready hoon! 🙏\n\nAap mujhse puch sakte hain:\n• Stock status\n• Today's sales\n• Price suggestions\n• Weather forecast\n• Festival recommendations\n\nKya jaanna chahte hain?`;
+        aiResponse = `${storeOwner.name} ji, main aapki madad ke liye ready hoon! 🙏\n\nAap mujhse puch sakte hain:\n• Price check\n• Stock status\n• Weather forecast\n• Festival preparation\n• Today's sales\n\nKya jaanna chahte hain?`;
       }
 
       const aiMessage: ChatMessage = {
@@ -80,13 +82,21 @@ export default function ChatScreen() {
     }, 1500);
   };
 
-  const handleQuickChip = (chip: string) => {
-    sendMessage(chip);
+  const handleQuickChip = (action: string) => {
+    sendMessage(action);
+  };
+
+  const handleMicPress = () => {
+    setIsListening(true);
+    setTimeout(() => {
+      setIsListening(false);
+      sendMessage('Mausam kaisa hai aaj?');
+    }, 2000);
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
+      {/* WhatsApp-style Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.aiAvatar}>
@@ -94,13 +104,13 @@ export default function ChatScreen() {
           </View>
           <View>
             <Text style={styles.headerTitle}>Munim-ji AI</Text>
-            <Text style={styles.headerSubtitle}>Your Business Advisor</Text>
+            <Text style={styles.headerSubtitle}>Your Business Advisor • Online</Text>
           </View>
         </View>
       </View>
 
-      {/* Language Selector */}
-      <View style={styles.languageSelector}>
+      {/* Language Pills */}
+      <View style={styles.languageBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.languagePills}>
           {languageOptions.map(lang => (
             <TouchableOpacity
@@ -111,14 +121,15 @@ export default function ChatScreen() {
               ]}
               onPress={() => setSelectedLanguage(lang.code)}
             >
-              <Text
-                style={[
-                  styles.languagePillText,
-                  selectedLanguage === lang.code && styles.languagePillTextSelected,
-                ]}
-              >
+              <Text style={[
+                styles.languagePillText,
+                selectedLanguage === lang.code && styles.languagePillTextSelected,
+              ]}>
                 {lang.label}
               </Text>
+              {selectedLanguage === lang.code && (
+                <Ionicons name="checkmark" size={12} color={Colors.textWhite} style={{ marginLeft: 4 }} />
+              )}
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -127,7 +138,6 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         {/* Chat Messages */}
         <ScrollView
@@ -156,12 +166,10 @@ export default function ChatScreen() {
                   message.type === 'user' ? styles.userMessageContent : styles.aiMessageContent,
                 ]}
               >
-                <Text
-                  style={[
-                    styles.messageText,
-                    message.type === 'user' ? styles.userMessageText : styles.aiMessageText,
-                  ]}
-                >
+                <Text style={[
+                  styles.messageText,
+                  message.type === 'user' ? styles.userMessageText : styles.aiMessageText,
+                ]}>
                   {message.message}
                 </Text>
               </View>
@@ -174,12 +182,26 @@ export default function ChatScreen() {
               <View style={styles.aiMessageAvatar}>
                 <Text style={styles.aiAvatarSmall}>🧮</Text>
               </View>
-              <View style={[styles.messageContent, styles.aiMessageContent, styles.typingIndicator]}>
-                <Text style={styles.typingText}>Munim-ji is typing...</Text>
+              <View style={[styles.messageContent, styles.aiMessageContent, styles.typingContainer]}>
+                <View style={styles.typingDots}>
+                  <View style={[styles.typingDot, { animationDelay: '0ms' }]} />
+                  <View style={[styles.typingDot, { animationDelay: '200ms' }]} />
+                  <View style={[styles.typingDot, { animationDelay: '400ms' }]} />
+                </View>
               </View>
             </View>
           )}
         </ScrollView>
+
+        {/* Listening Overlay */}
+        {isListening && (
+          <View style={styles.listeningOverlay}>
+            <View style={styles.listeningPulse}>
+              <Ionicons name="mic" size={40} color={Colors.error} />
+            </View>
+            <Text style={styles.listeningText}>🎤 Listening in Hindi...</Text>
+          </View>
+        )}
 
         {/* Quick Chips */}
         <View style={styles.quickChipsContainer}>
@@ -188,9 +210,9 @@ export default function ChatScreen() {
               <TouchableOpacity
                 key={index}
                 style={styles.quickChip}
-                onPress={() => handleQuickChip(chip)}
+                onPress={() => handleQuickChip(chip.action)}
               >
-                <Text style={styles.quickChipText}>{chip}</Text>
+                <Text style={styles.quickChipText}>{chip.label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -201,27 +223,24 @@ export default function ChatScreen() {
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.textInput}
-              placeholder="Type your message..."
+              placeholder="Type or speak..."
               placeholderTextColor={Colors.textMuted}
               value={inputText}
               onChangeText={setInputText}
               multiline
               maxLength={500}
             />
-            <TouchableOpacity style={styles.micButton}>
-              <Ionicons name="mic-outline" size={22} color={Colors.textMuted} />
-            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              !inputText.trim() && styles.sendButtonDisabled,
-            ]}
-            onPress={() => sendMessage(inputText)}
-            disabled={!inputText.trim()}
-          >
-            <Ionicons name="send" size={20} color={Colors.textWhite} />
-          </TouchableOpacity>
+          
+          {inputText.trim() ? (
+            <TouchableOpacity style={styles.sendButton} onPress={() => sendMessage(inputText)}>
+              <Ionicons name="send" size={20} color={Colors.textWhite} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.micButton} onPress={handleMicPress}>
+              <Ionicons name="mic" size={24} color={Colors.textWhite} />
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -239,9 +258,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    backgroundColor: Colors.whatsappGreen,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -250,8 +267,8 @@ const styles = StyleSheet.create({
   aiAvatar: {
     width: 44,
     height: 44,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primaryLight,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.sm,
@@ -262,13 +279,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.semibold,
-    color: Colors.textPrimary,
+    color: Colors.textWhite,
   },
   headerSubtitle: {
     fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
+    color: 'rgba(255,255,255,0.8)',
   },
-  languageSelector: {
+  languageBar: {
     backgroundColor: Colors.card,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
@@ -279,6 +296,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   languagePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
     borderRadius: BorderRadius.full,
@@ -287,8 +306,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   languagePillSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.whatsappGreen,
+    borderColor: Colors.whatsappGreen,
   },
   languagePillText: {
     fontSize: FontSizes.sm,
@@ -320,8 +339,8 @@ const styles = StyleSheet.create({
   aiMessageAvatar: {
     width: 32,
     height: 32,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primaryLight,
+    borderRadius: 16,
+    backgroundColor: Colors.whatsappGreen + '20',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.sm,
@@ -332,35 +351,63 @@ const styles = StyleSheet.create({
   messageContent: {
     maxWidth: '75%',
     padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
   },
   userMessageContent: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.whatsappBubble,
     borderBottomRightRadius: 4,
   },
   aiMessageContent: {
     backgroundColor: Colors.card,
     borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    ...Shadows.sm,
   },
   messageText: {
     fontSize: FontSizes.md,
     lineHeight: 22,
   },
   userMessageText: {
-    color: Colors.textWhite,
+    color: Colors.textPrimary,
   },
   aiMessageText: {
     color: Colors.textPrimary,
   },
-  typingIndicator: {
-    backgroundColor: Colors.divider,
+  typingContainer: {
+    paddingVertical: Spacing.md,
   },
-  typingText: {
-    fontSize: FontSizes.sm,
-    color: Colors.textMuted,
-    fontStyle: 'italic',
+  typingDots: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  typingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.textMuted,
+  },
+  listeningOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  listeningPulse: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  listeningText: {
+    fontSize: FontSizes.lg,
+    color: Colors.textWhite,
+    fontWeight: FontWeights.medium,
   },
   quickChipsContainer: {
     backgroundColor: Colors.background,
@@ -378,11 +425,12 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: Colors.whatsappGreen,
+    ...Shadows.sm,
   },
   quickChipText: {
     fontSize: FontSizes.sm,
-    color: Colors.primary,
+    color: Colors.whatsappGreen,
     fontWeight: FontWeights.medium,
   },
   inputContainer: {
@@ -390,40 +438,39 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     padding: Spacing.md,
     backgroundColor: Colors.card,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
     gap: Spacing.sm,
   },
   inputWrapper: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
     backgroundColor: Colors.background,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Platform.OS === 'ios' ? Spacing.sm : 0,
     borderWidth: 1,
     borderColor: Colors.border,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Platform.OS === 'ios' ? Spacing.sm : 0,
   },
   textInput: {
-    flex: 1,
     fontSize: FontSizes.md,
     color: Colors.textPrimary,
     maxHeight: 100,
     paddingVertical: Platform.OS === 'ios' ? 0 : Spacing.sm,
   },
-  micButton: {
-    padding: Spacing.xs,
-  },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.full,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.whatsappGreen,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.md,
+  },
+  micButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  sendButtonDisabled: {
-    backgroundColor: Colors.textMuted,
+    ...Shadows.md,
   },
 });
