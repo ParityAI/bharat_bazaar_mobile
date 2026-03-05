@@ -1,0 +1,65 @@
+{
+  "expo": {
+    "name": "BharatBazaar AI",
+    "slug": "bharat-bazaar-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "bharatbazaar",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Scan wholesale bills to update inventory",
+        "NSPhotoLibraryUsageDescription": "Upload bill images from gallery",
+        "NSMicrophoneUsageDescription": "Voice input for Munim-ji assistant"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#F97316"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#F97316"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Scan wholesale bills to update inventory"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Upload bill images from gallery"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
