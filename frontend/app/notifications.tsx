@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +30,7 @@ const getNotificationStyle = (type: string) => {
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const [readAll, setReadAll] = useState(false);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -43,7 +45,7 @@ export default function NotificationsScreen() {
             <Text style={styles.newBadgeText}>3 new</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.markAllButton}>
+        <TouchableOpacity style={styles.markAllButton} onPress={() => setReadAll(true)}>
           <Text style={styles.markAllText}>Mark all read</Text>
         </TouchableOpacity>
       </View>
@@ -51,7 +53,7 @@ export default function NotificationsScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {notifications.map((notification, index) => {
           const typeStyle = getNotificationStyle(notification.type);
-          const isNew = index < 3;
+          const isNew = !readAll && index < 3;
           
           return (
             <View 
@@ -72,7 +74,9 @@ export default function NotificationsScreen() {
                 </View>
                 <Text style={styles.notificationMessage}>{notification.message}</Text>
                 {notification.action && (
-                  <TouchableOpacity style={[styles.actionButton, { borderColor: typeStyle.color }]}>
+                  <TouchableOpacity style={[styles.actionButton, { borderColor: typeStyle.color }]} onPress={() => {
+                    Alert.alert('Action', `${notification.action} - Feature coming soon!`, [{ text: 'OK' }]);
+                  }}>
                     <Text style={[styles.actionButtonText, { color: typeStyle.color }]}>
                       {notification.action}
                     </Text>

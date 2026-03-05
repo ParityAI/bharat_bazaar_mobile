@@ -1,6 +1,6 @@
 {
-  "installCommand": "cd frontend && npm install",
-  "buildCommand": "cd frontend && npx expo export --platform web",
+  "installCommand": "cd frontend && npm install --legacy-peer-deps",
+  "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
   "framework": null,
   "rewrites": [

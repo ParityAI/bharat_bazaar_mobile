@@ -10,6 +10,7 @@ import {
   Modal,
   FlatList,
   Animated,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -248,7 +249,9 @@ export default function PricingScreen() {
             </View>
 
             {/* Apply Button */}
-            <TouchableOpacity style={styles.applyButton}>
+            <TouchableOpacity style={styles.applyButton} onPress={() => {
+              Alert.alert('✅ Price Updated!', 'Balanced price ₹365 has been applied to Basmati Rice 5kg.', [{ text: 'OK' }]);
+            }}>
               <Text style={styles.applyButtonText}>Apply Balanced Price</Text>
             </TouchableOpacity>
           </>
