@@ -194,6 +194,33 @@ export default function AuthScreen() {
         >
           {step === 'phone' && (
             <View style={styles.formCard}>
+              {/* Demo Login Banner for Judges */}
+              <View style={styles.demoBanner}>
+                <View style={styles.demoBannerHeader}>
+                  <Ionicons name="flash" size={22} color="#F59E0B" />
+                  <Text style={styles.demoBannerTitle}>Demo Mode</Text>
+                </View>
+                <Text style={styles.demoBannerDesc}>
+                  Phone: 9876543210  |  OTP: 123456
+                </Text>
+                <TouchableOpacity style={styles.demoBtn} onPress={handleDemoLogin}>
+                  {isLoading ? (
+                    <ActivityIndicator color={Colors.textWhite} />
+                  ) : (
+                    <>
+                      <Ionicons name="flash" size={18} color={Colors.textWhite} />
+                      <Text style={styles.demoBtnText}>Quick Demo Login</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.demoDivider}>
+                <View style={styles.demoDividerLine} />
+                <Text style={styles.demoDividerText}>OR LOGIN</Text>
+                <View style={styles.demoDividerLine} />
+              </View>
+
               <Text style={styles.formTitle}>Welcome! 🙏</Text>
               <Text style={styles.formSubtitle}>Enter your phone number to get started</Text>
 
@@ -230,21 +257,6 @@ export default function AuthScreen() {
 
               <Text style={styles.termsText}>
                 By continuing, you agree to our Terms of Service
-              </Text>
-
-              {/* Demo Login for Judges */}
-              <View style={styles.demoDivider}>
-                <View style={styles.demoDividerLine} />
-                <Text style={styles.demoDividerText}>OR</Text>
-                <View style={styles.demoDividerLine} />
-              </View>
-
-              <TouchableOpacity style={styles.demoBtn} onPress={handleDemoLogin}>
-                <Ionicons name="flash" size={20} color={Colors.primary} />
-                <Text style={styles.demoBtnText}>Quick Demo Login</Text>
-              </TouchableOpacity>
-              <Text style={styles.demoHint}>
-                For judges: Use 9876543210 or tap Quick Demo Login
               </Text>
             </View>
           )}
@@ -545,28 +557,47 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontWeight: FontWeights.medium,
   },
+  demoBanner: {
+    width: '100%',
+    backgroundColor: '#FFFBEB',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+    padding: Spacing.md,
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  demoBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  demoBannerTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.bold,
+    color: '#92400E',
+  },
+  demoBannerDesc: {
+    fontSize: FontSizes.md,
+    color: '#78350F',
+    fontWeight: FontWeights.medium,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
   demoBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    backgroundColor: '#F59E0B',
+    gap: Spacing.xs,
   },
   demoBtnText: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
-    color: Colors.primary,
-  },
-  demoHint: {
-    fontSize: FontSizes.xs,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    fontStyle: 'italic',
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.bold,
+    color: Colors.textWhite,
   },
 });
