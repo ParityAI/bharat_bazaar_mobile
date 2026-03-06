@@ -57,6 +57,33 @@ export default function AuthScreen() {
     ]).start();
   };
 
+  const DEMO_PHONE = '9876543210';
+  const DEMO_OTP = '123456';
+  const DEMO_NAME = 'Demo Judge';
+
+  const handleDemoLogin = async () => {
+    setPhone(DEMO_PHONE);
+    setIsLoading(true);
+    try {
+      await login({
+        phone: `+91${DEMO_PHONE}`,
+        name: DEMO_NAME,
+        isVerified: true,
+        createdAt: new Date().toISOString(),
+      });
+      const done = await isOnboardingDone();
+      if (done) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/onboarding');
+      }
+    } catch {
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSendOtp = () => {
     if (phone.length !== 10) {
       Alert.alert('Invalid Number', 'Please enter a valid 10-digit phone number');
@@ -67,6 +94,10 @@ export default function AuthScreen() {
     setTimeout(() => {
       setIsLoading(false);
       setResendTimer(30);
+      // Auto-fill OTP for demo number
+      if (phone === DEMO_PHONE) {
+        setOtp(DEMO_OTP.split(''));
+      }
       setStep('otp');
       animateStep();
     }, 1500);
@@ -98,6 +129,10 @@ export default function AuthScreen() {
     // Simulate OTP verification (accept any 6-digit code)
     setTimeout(() => {
       setIsLoading(false);
+      // Pre-fill name for demo number
+      if (phone === DEMO_PHONE) {
+        setName(DEMO_NAME);
+      }
       setStep('name');
       animateStep();
     }, 1000);
@@ -195,6 +230,21 @@ export default function AuthScreen() {
 
               <Text style={styles.termsText}>
                 By continuing, you agree to our Terms of Service
+              </Text>
+
+              {/* Demo Login for Judges */}
+              <View style={styles.demoDivider}>
+                <View style={styles.demoDividerLine} />
+                <Text style={styles.demoDividerText}>OR</Text>
+                <View style={styles.demoDividerLine} />
+              </View>
+
+              <TouchableOpacity style={styles.demoBtn} onPress={handleDemoLogin}>
+                <Ionicons name="flash" size={20} color={Colors.primary} />
+                <Text style={styles.demoBtnText}>Quick Demo Login</Text>
+              </TouchableOpacity>
+              <Text style={styles.demoHint}>
+                For judges: Use 9876543210 or tap Quick Demo Login
               </Text>
             </View>
           )}
@@ -476,5 +526,47 @@ const styles = StyleSheet.create({
   },
   stepDotDone: {
     backgroundColor: Colors.success,
+  },
+  demoDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  demoDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  demoDividerText: {
+    marginHorizontal: Spacing.md,
+    fontSize: FontSizes.sm,
+    color: Colors.textMuted,
+    fontWeight: FontWeights.medium,
+  },
+  demoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  demoBtnText: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.semibold,
+    color: Colors.primary,
+  },
+  demoHint: {
+    fontSize: FontSizes.xs,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
