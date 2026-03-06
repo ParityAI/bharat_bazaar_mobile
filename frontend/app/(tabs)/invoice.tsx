@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, FontSizes, FontWeights, Shadows } from '../../src/constants/theme';
 import { storeOwner, invoiceItems } from '../../src/constants/mockData';
+import { saveInvoice } from '../../src/services/storage';
 
 export default function InvoiceScreen() {
   const [showPreview, setShowPreview] = useState(false);
@@ -59,7 +60,17 @@ export default function InvoiceScreen() {
     return result + ' Only';
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    await saveInvoice({
+      id: `INV-${Date.now()}`,
+      customerName,
+      customerPhone,
+      items: invoiceItems,
+      subtotal,
+      totalGst,
+      grandTotal,
+      createdAt: new Date().toISOString(),
+    });
     setShowPreview(true);
   };
 

@@ -14,9 +14,13 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, FontSizes, FontWeights, Shadows } from '../src/constants/theme';
 import { cities, categories, languageOptions } from '../src/constants/mockData';
+import { useAuth } from '../src/context/AuthContext';
+import { saveStoreProfile, saveSettings, saveInventory } from '../src/services/storage';
+import { inventoryItems } from '../src/constants/mockData';
 
 export default function SetupScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [storeName, setStoreName] = useState('Sharma Kirana Store');
   const [selectedCity, setSelectedCity] = useState('Lucknow');
   const [selectedCategories, setSelectedCategories] = useState(['1', '2']);
@@ -29,7 +33,24 @@ export default function SetupScreen() {
     );
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
+    await saveStoreProfile({
+      storeName,
+      ownerName: user?.name || 'Store Owner',
+      phone: user?.phone || '',
+      city: selectedCity,
+      gstin: '',
+      categories: selectedCategories,
+      language: selectedLanguage,
+    });
+    await saveSettings({
+      darkMode: false,
+      language: selectedLanguage,
+      notifications: true,
+      hapticFeedback: true,
+    });
+    // Seed initial inventory data
+    await saveInventory(inventoryItems);
     router.replace('/(tabs)');
   };
 
