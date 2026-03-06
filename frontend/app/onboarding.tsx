@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, FontSizes, FontWeights } from '../src/constants/theme';
 import { onboardingPages, languageOptions } from '../src/constants/mockData';
+import { setOnboardingDone } from '../src/services/storage';
 
 const MAX_MOBILE_WIDTH = 390;
 const getResponsiveWidth = () => Math.min(Dimensions.get('window').width, MAX_MOBILE_WIDTH);
@@ -150,11 +151,13 @@ export default function OnboardingScreen() {
     setCurrentPage(page);
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    await setOnboardingDone();
     router.replace('/setup');
   };
 
-  const handleGetStarted = () => {
+  const handleGetStarted = async () => {
+    await setOnboardingDone();
     router.replace('/setup');
   };
 

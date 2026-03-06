@@ -25,6 +25,7 @@ import {
   weatherData,
   weeklyChartData,
 } from '../../src/constants/mockData';
+import { getStoreProfile, StoreProfile } from '../../src/services/storage';
 
 const MAX_MOBILE_WIDTH = 390;
 const getResponsiveWidth = () => Math.min(Dimensions.get('window').width, MAX_MOBILE_WIDTH);
@@ -69,8 +70,18 @@ export default function DashboardScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [showAiInsight, setShowAiInsight] = useState(true);
+  const [storeProfile, setStoreProfile] = useState<StoreProfile | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    const profile = await getStoreProfile();
+    if (profile) setStoreProfile(profile);
+  };
 
   useEffect(() => {
     Animated.parallel([
@@ -108,17 +119,25 @@ export default function DashboardScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>{getGreeting()} 🙏</Text>
-            <Text style={styles.storeName}>{storeOwner.storeName}</Text>
+            <Text style={styles.storeName}>{storeProfile?.storeName || storeOwner.storeName}</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.notificationBtn}
-            onPress={() => router.push('/notifications')}
-          >
-            <Ionicons name="notifications-outline" size={24} color={Colors.textPrimary} />
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>3</Text>
-            </View>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.notificationBtn}
+              onPress={() => router.push('/notifications')}
+            >
+              <Ionicons name="notifications-outline" size={24} color={Colors.textPrimary} />
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>3</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.notificationBtn}
+              onPress={() => router.push('/settings')}
+            >
+              <Ionicons name="settings-outline" size={24} color={Colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Revenue Hero Card */}
@@ -352,6 +371,10 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     color: Colors.textMuted,
     marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
   },
   notificationBtn: {
     width: 44,

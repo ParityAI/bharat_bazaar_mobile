@@ -3,18 +3,20 @@ import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, FontSizes, FontWeights } from '../src/constants/theme';
 import { BrandLogo } from '../src/components/BrandLogo';
+import { useAuth } from '../src/context/AuthContext';
+import { isOnboardingDone } from '../src/services/storage';
 
 const MAX_MOBILE_WIDTH = 390;
 const width = Math.min(Dimensions.get('window').width, MAX_MOBILE_WIDTH);
 
 export default function SplashScreen() {
   const router = useRouter();
+  const { user, isLoading } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const loadingWidth = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Fade in and scale animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -29,20 +31,31 @@ export default function SplashScreen() {
       }),
     ]).start();
 
-    // Loading bar animation
     Animated.timing(loadingWidth, {
       toValue: width * 0.6,
       duration: 2000,
       useNativeDriver: false,
     }).start();
+  }, []);
 
-    // Navigate to onboarding after 2 seconds
-    const timer = setTimeout(() => {
-      router.replace('/onboarding');
+  useEffect(() => {
+    if (isLoading) return;
+
+    const timer = setTimeout(async () => {
+      if (!user) {
+        router.replace('/auth');
+      } else {
+        const done = await isOnboardingDone();
+        if (done) {
+          router.replace('/(tabs)');
+        } else {
+          router.replace('/onboarding');
+        }
+      }
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [isLoading, user]);
 
   return (
     <View style={styles.container}>
@@ -59,16 +72,11 @@ export default function SplashScreen() {
         <View style={styles.iconContainer}>
           <BrandLogo size={80} color={Colors.textWhite} />
         </View>
-
-        {/* App Name */}
         <Text style={styles.appName}>BharatBazaar AI</Text>
         <Text style={styles.appNameHindi}>भारत बाज़ार AI</Text>
-
-        {/* Tagline */}
         <Text style={styles.tagline}>Weighed by Intelligence</Text>
       </Animated.View>
 
-      {/* Loading Bar */}
       <View style={styles.loadingContainer}>
         <View style={styles.loadingTrack}>
           <Animated.View

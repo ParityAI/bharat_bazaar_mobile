@@ -9,11 +9,16 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Image,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { Colors, Spacing, BorderRadius, FontSizes, FontWeights, Shadows } from '../../src/constants/theme';
 import { scannedItems as mockScannedItems } from '../../src/constants/mockData';
+import { addInventoryItems } from '../../src/services/storage';
 
 interface ScannedItem {
   id: string;
@@ -25,17 +30,19 @@ interface ScannedItem {
 }
 
 export default function ScannerScreen() {
-  const [scanState, setScanState] = useState<'idle' | 'scanning' | 'results'>('idle');
+  const [scanState, setScanState] = useState<'idle' | 'camera' | 'scanning' | 'results'>('idle');
   const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanText, setScanText] = useState('Reading items...');
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const laserAnim = useRef(new Animated.Value(0)).current;
+  const cameraRef = useRef<CameraView>(null);
 
   const formatCurrency = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
 
   useEffect(() => {
     if (scanState === 'scanning') {
-      // Animate laser line
       Animated.loop(
         Animated.sequence([
           Animated.timing(laserAnim, {
@@ -53,7 +60,6 @@ export default function ScannerScreen() {
         ])
       ).start();
 
-      // Progress simulation
       let progress = 0;
       const texts = ['Reading items...', 'Extracting prices...', 'Almost done...'];
       const interval = setInterval(() => {
@@ -74,9 +80,50 @@ export default function ScannerScreen() {
     }
   }, [scanState]);
 
-  const handleScan = () => {
-    setScanState('scanning');
-    setScanProgress(0);
+  const openCamera = async () => {
+    if (!cameraPermission?.granted) {
+      const result = await requestCameraPermission();
+      if (!result.granted) {
+        Alert.alert(
+          'Camera Permission Required',
+          'Please allow camera access to scan bills',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+    }
+    setScanState('camera');
+  };
+
+  const takePicture = async () => {
+    if (cameraRef.current) {
+      try {
+        const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
+        if (photo) {
+          setCapturedImage(photo.uri);
+          setScanState('scanning');
+          setScanProgress(0);
+        }
+      } catch {
+        // Fallback: start scanning without photo (demo mode)
+        setCapturedImage(null);
+        setScanState('scanning');
+        setScanProgress(0);
+      }
+    }
+  };
+
+  const pickFromGallery = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setCapturedImage(result.assets[0].uri);
+      setScanState('scanning');
+      setScanProgress(0);
+    }
   };
 
   const toggleItem = (id: string) => {
@@ -90,17 +137,35 @@ export default function ScannerScreen() {
   const selectedItems = scannedItems.filter(item => item.selected);
   const totalAmount = selectedItems.reduce((sum, item) => sum + item.total, 0);
 
-  const handleAddToInventory = () => {
-    Alert.alert(
-      '✅ Success!',
-      `${selectedItems.length} items added to inventory! 📦`,
-      [{ text: 'OK', onPress: () => setScanState('idle') }]
-    );
+  const handleAddToInventory = async () => {
+    const itemsToAdd = selectedItems.map(item => ({
+      id: `scan_${item.id}_${Date.now()}`,
+      name: item.name,
+      units: item.quantity,
+      costPrice: item.unitPrice,
+      sellPrice: Math.round(item.unitPrice * 1.25),
+      margin: 25,
+      status: 'ok',
+      source: 'Bill Scan',
+      updated: 'just now',
+    }));
+
+    try {
+      await addInventoryItems(itemsToAdd);
+      Alert.alert(
+        'Success!',
+        `${selectedItems.length} items added to inventory!`,
+        [{ text: 'OK', onPress: () => handleReset() }]
+      );
+    } catch {
+      Alert.alert('Error', 'Failed to add items to inventory');
+    }
   };
 
   const handleReset = () => {
     setScanState('idle');
     setScannedItems([]);
+    setCapturedImage(null);
   };
 
   const laserTranslateY = laserAnim.interpolate({
@@ -116,167 +181,216 @@ export default function ScannerScreen() {
           <Ionicons name="scan" size={24} color={Colors.primary} />
         </View>
         <View>
-          <Text style={styles.headerTitle}>📸 Bill Scanner</Text>
+          <Text style={styles.headerTitle}>Bill Scanner</Text>
           <Text style={styles.headerSubtitle}>Scan wholesale bills to update inventory</Text>
         </View>
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {scanState === 'idle' && (
-          <>
-            {/* Camera Area */}
-            <View style={styles.cameraContainer}>
-              <View style={styles.cameraBorder}>
-                <View style={[styles.corner, styles.topLeft]} />
-                <View style={[styles.corner, styles.topRight]} />
-                <View style={[styles.corner, styles.bottomLeft]} />
-                <View style={[styles.corner, styles.bottomRight]} />
+      {scanState === 'camera' ? (
+        <View style={styles.cameraFullContainer}>
+          <CameraView
+            ref={cameraRef}
+            style={styles.cameraFull}
+            facing="back"
+          >
+            {/* Camera overlay with scan frame */}
+            <View style={styles.cameraOverlay}>
+              <View style={styles.scanFrame}>
+                <View style={[styles.scanCornerFrame, styles.topLeftFrame]} />
+                <View style={[styles.scanCornerFrame, styles.topRightFrame]} />
+                <View style={[styles.scanCornerFrame, styles.bottomLeftFrame]} />
+                <View style={[styles.scanCornerFrame, styles.bottomRightFrame]} />
               </View>
-              <Ionicons name="camera" size={60} color={Colors.textMuted} />
-              <Text style={styles.cameraPlaceholder}>Position bill within frame</Text>
+              <Text style={styles.cameraHint}>Align bill within the frame</Text>
             </View>
 
-            {/* Buttons */}
-            <TouchableOpacity style={styles.primaryButton} onPress={handleScan}>
-              <Ionicons name="camera" size={24} color={Colors.textWhite} />
-              <Text style={styles.primaryButtonText}>Take Photo</Text>
-            </TouchableOpacity>
+            {/* Camera controls */}
+            <View style={styles.cameraControls}>
+              <TouchableOpacity
+                style={styles.cameraCancelBtn}
+                onPress={() => setScanState('idle')}
+              >
+                <Ionicons name="close" size={28} color={Colors.textWhite} />
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.secondaryButton} onPress={handleScan}>
-              <Ionicons name="folder-outline" size={22} color={Colors.primary} />
-              <Text style={styles.secondaryButtonText}>Upload from Gallery</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.captureBtn} onPress={takePicture}>
+                <View style={styles.captureBtnInner} />
+              </TouchableOpacity>
 
-            {/* Tips */}
-            <View style={styles.tipsCard}>
-              <Text style={styles.tipsTitle}>💡 Tips for best results</Text>
-              <Text style={styles.tipsText}>• Hold steady, ensure good lighting</Text>
-              <Text style={styles.tipsText}>• Works with Hindi & English bills</Text>
-              <Text style={styles.tipsText}>• Flatten the bill for better accuracy</Text>
+              <TouchableOpacity style={styles.galleryBtn} onPress={pickFromGallery}>
+                <Ionicons name="images" size={28} color={Colors.textWhite} />
+              </TouchableOpacity>
             </View>
-          </>
-        )}
-
-        {scanState === 'scanning' && (
-          <>
-            {/* Scanning Animation */}
-            <View style={styles.scanningContainer}>
-              {/* Bill placeholder */}
-              <View style={styles.billPreview}>
-                {/* Scan corners */}
-                <View style={[styles.scanCorner, styles.scanTopLeft]} />
-                <View style={[styles.scanCorner, styles.scanTopRight]} />
-                <View style={[styles.scanCorner, styles.scanBottomLeft]} />
-                <View style={[styles.scanCorner, styles.scanBottomRight]} />
-                
-                {/* Bill lines */}
-                <View style={styles.billLines}>
-                  <View style={[styles.billLine, { width: '80%' }]} />
-                  <View style={[styles.billLine, { width: '60%' }]} />
-                  <View style={[styles.billLine, { width: '90%' }]} />
-                  <View style={[styles.billLine, { width: '70%' }]} />
-                  <View style={[styles.billLine, { width: '85%' }]} />
-                  <View style={[styles.billLine, { width: '55%' }]} />
+          </CameraView>
+        </View>
+      ) : (
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {scanState === 'idle' && (
+            <>
+              {/* Camera Area */}
+              <View style={styles.cameraContainer}>
+                <View style={styles.cameraBorder}>
+                  <View style={[styles.corner, styles.topLeft]} />
+                  <View style={[styles.corner, styles.topRight]} />
+                  <View style={[styles.corner, styles.bottomLeft]} />
+                  <View style={[styles.corner, styles.bottomRight]} />
                 </View>
-
-                {/* Laser line */}
-                <Animated.View 
-                  style={[
-                    styles.laserLine,
-                    { transform: [{ translateY: laserTranslateY }] }
-                  ]} 
-                />
+                <Ionicons name="camera" size={60} color={Colors.textMuted} />
+                <Text style={styles.cameraPlaceholder}>Position bill within frame</Text>
               </View>
 
-              {/* Progress */}
-              <View style={styles.progressSection}>
-                <Text style={styles.scanningText}>🧠 {scanText}</Text>
-                <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: `${scanProgress}%` }]} />
+              {/* Buttons */}
+              <TouchableOpacity style={styles.primaryButton} onPress={openCamera}>
+                <Ionicons name="camera" size={24} color={Colors.textWhite} />
+                <Text style={styles.primaryButtonText}>Open Camera</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.secondaryButton} onPress={pickFromGallery}>
+                <Ionicons name="folder-outline" size={22} color={Colors.primary} />
+                <Text style={styles.secondaryButtonText}>Upload from Gallery</Text>
+              </TouchableOpacity>
+
+              {/* Tips */}
+              <View style={styles.tipsCard}>
+                <Text style={styles.tipsTitle}>Tips for best results</Text>
+                <Text style={styles.tipsText}>• Hold steady, ensure good lighting</Text>
+                <Text style={styles.tipsText}>• Works with Hindi & English bills</Text>
+                <Text style={styles.tipsText}>• Flatten the bill for better accuracy</Text>
+              </View>
+            </>
+          )}
+
+          {scanState === 'scanning' && (
+            <>
+              {/* Show captured image if available */}
+              {capturedImage && (
+                <View style={styles.capturedImageContainer}>
+                  <Image source={{ uri: capturedImage }} style={styles.capturedImage} resizeMode="contain" />
                 </View>
-                <Text style={styles.progressText}>{scanProgress}%</Text>
-              </View>
-            </View>
-          </>
-        )}
+              )}
 
-        {scanState === 'results' && (
-          <>
-            {/* Success Header */}
-            <View style={styles.successHeader}>
-              <View style={styles.successBadge}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.success} />
-                <Text style={styles.successText}>Scan Complete</Text>
-              </View>
-              <View style={styles.sourceBadge}>
-                <Text style={styles.sourceBadgeText}>Source: Bill Scan</Text>
-              </View>
-            </View>
-
-            <Text style={styles.confidenceText}>
-              AI extracted {scannedItems.length} items with 98% confidence
-            </Text>
-
-            {/* Items List */}
-            <View style={styles.itemsList}>
-              {scannedItems.map(item => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={[
-                    styles.itemCard,
-                    !item.selected && styles.itemCardUnselected
-                  ]}
-                  onPress={() => toggleItem(item.id)}
-                >
-                  <View style={[
-                    styles.checkbox,
-                    item.selected && styles.checkboxSelected
-                  ]}>
-                    {item.selected && <Ionicons name="checkmark" size={16} color={Colors.textWhite} />}
+              {/* Scanning Animation */}
+              <View style={styles.scanningContainer}>
+                {!capturedImage && (
+                  <View style={styles.billPreview}>
+                    <View style={[styles.scanCorner, styles.scanTopLeft]} />
+                    <View style={[styles.scanCorner, styles.scanTopRight]} />
+                    <View style={[styles.scanCorner, styles.scanBottomLeft]} />
+                    <View style={[styles.scanCorner, styles.scanBottomRight]} />
+                    <View style={styles.billLines}>
+                      <View style={[styles.billLine, { width: '80%' }]} />
+                      <View style={[styles.billLine, { width: '60%' }]} />
+                      <View style={[styles.billLine, { width: '90%' }]} />
+                      <View style={[styles.billLine, { width: '70%' }]} />
+                      <View style={[styles.billLine, { width: '85%' }]} />
+                      <View style={[styles.billLine, { width: '55%' }]} />
+                    </View>
+                    <Animated.View
+                      style={[
+                        styles.laserLine,
+                        { transform: [{ translateY: laserTranslateY }] }
+                      ]}
+                    />
                   </View>
-                  <View style={styles.itemInfo}>
-                    <Text style={[styles.itemName, !item.selected && styles.textMuted]}>
-                      {item.name}
-                    </Text>
-                    <Text style={styles.itemDetails}>
-                      {item.quantity} × {formatCurrency(item.unitPrice)}
-                    </Text>
+                )}
+
+                <View style={styles.progressSection}>
+                  <Text style={styles.scanningText}>{scanText}</Text>
+                  <View style={styles.progressBar}>
+                    <View style={[styles.progressFill, { width: `${scanProgress}%` }]} />
                   </View>
-                  <Text style={[styles.itemTotal, !item.selected && styles.textMuted]}>
-                    {formatCurrency(item.total)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                  <Text style={styles.progressText}>{scanProgress}%</Text>
+                </View>
+              </View>
+            </>
+          )}
 
-            {/* Total */}
-            <View style={styles.totalCard}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>{formatCurrency(totalAmount)}</Text>
-            </View>
+          {scanState === 'results' && (
+            <>
+              {/* Captured image thumbnail */}
+              {capturedImage && (
+                <View style={styles.thumbnailContainer}>
+                  <Image source={{ uri: capturedImage }} style={styles.thumbnail} resizeMode="cover" />
+                  <Text style={styles.thumbnailLabel}>Scanned Bill</Text>
+                </View>
+              )}
 
-            {/* Actions */}
-            <TouchableOpacity
-              style={[
-                styles.addButton,
-                selectedItems.length === 0 && styles.addButtonDisabled
-              ]}
-              onPress={handleAddToInventory}
-              disabled={selectedItems.length === 0}
-            >
-              <Ionicons name="checkmark-circle" size={22} color={Colors.textWhite} />
-              <Text style={styles.addButtonText}>
-                Add {selectedItems.length} Items to Inventory
+              {/* Success Header */}
+              <View style={styles.successHeader}>
+                <View style={styles.successBadge}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.success} />
+                  <Text style={styles.successText}>Scan Complete</Text>
+                </View>
+                <View style={styles.sourceBadge}>
+                  <Text style={styles.sourceBadgeText}>Source: Bill Scan</Text>
+                </View>
+              </View>
+
+              <Text style={styles.confidenceText}>
+                AI extracted {scannedItems.length} items with 98% confidence
               </Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity style={styles.rescanButton} onPress={handleReset}>
-              <Ionicons name="camera" size={20} color={Colors.primary} />
-              <Text style={styles.rescanButtonText}>Scan Another Bill</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </ScrollView>
+              {/* Items List */}
+              <View style={styles.itemsList}>
+                {scannedItems.map(item => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[
+                      styles.itemCard,
+                      !item.selected && styles.itemCardUnselected
+                    ]}
+                    onPress={() => toggleItem(item.id)}
+                  >
+                    <View style={[
+                      styles.checkbox,
+                      item.selected && styles.checkboxSelected
+                    ]}>
+                      {item.selected && <Ionicons name="checkmark" size={16} color={Colors.textWhite} />}
+                    </View>
+                    <View style={styles.itemInfo}>
+                      <Text style={[styles.itemName, !item.selected && styles.textMuted]}>
+                        {item.name}
+                      </Text>
+                      <Text style={styles.itemDetails}>
+                        {item.quantity} × {formatCurrency(item.unitPrice)}
+                      </Text>
+                    </View>
+                    <Text style={[styles.itemTotal, !item.selected && styles.textMuted]}>
+                      {formatCurrency(item.total)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Total */}
+              <View style={styles.totalCard}>
+                <Text style={styles.totalLabel}>Total</Text>
+                <Text style={styles.totalValue}>{formatCurrency(totalAmount)}</Text>
+              </View>
+
+              {/* Actions */}
+              <TouchableOpacity
+                style={[
+                  styles.addButton,
+                  selectedItems.length === 0 && styles.addButtonDisabled
+                ]}
+                onPress={handleAddToInventory}
+                disabled={selectedItems.length === 0}
+              >
+                <Ionicons name="checkmark-circle" size={22} color={Colors.textWhite} />
+                <Text style={styles.addButtonText}>
+                  Add {selectedItems.length} Items to Inventory
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.rescanButton} onPress={handleReset}>
+                <Ionicons name="camera" size={20} color={Colors.primary} />
+                <Text style={styles.rescanButtonText}>Scan Another Bill</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -319,6 +433,139 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.md,
   },
+  // Camera full screen mode
+  cameraFullContainer: {
+    flex: 1,
+  },
+  cameraFull: {
+    flex: 1,
+  },
+  cameraOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  scanFrame: {
+    width: 280,
+    height: 380,
+    position: 'relative',
+  },
+  scanCornerFrame: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderColor: Colors.textWhite,
+  },
+  topLeftFrame: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 3,
+    borderLeftWidth: 3,
+    borderTopLeftRadius: 12,
+  },
+  topRightFrame: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 3,
+    borderRightWidth: 3,
+    borderTopRightRadius: 12,
+  },
+  bottomLeftFrame: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 3,
+    borderLeftWidth: 3,
+    borderBottomLeftRadius: 12,
+  },
+  bottomRightFrame: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderBottomRightRadius: 12,
+  },
+  cameraHint: {
+    color: Colors.textWhite,
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.medium,
+    marginTop: Spacing.lg,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  cameraControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  cameraCancelBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  captureBtn: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: Colors.textWhite,
+  },
+  captureBtnInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.textWhite,
+  },
+  galleryBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Captured image
+  capturedImageContainer: {
+    height: 220,
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
+    marginBottom: Spacing.md,
+    ...Shadows.md,
+  },
+  capturedImage: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbnailContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.sm,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+    ...Shadows.sm,
+  },
+  thumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: BorderRadius.md,
+  },
+  thumbnailLabel: {
+    fontSize: FontSizes.sm,
+    color: Colors.textMuted,
+  },
+  // Idle state
   cameraContainer: {
     height: 280,
     backgroundColor: Colors.card,
@@ -429,6 +676,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: 4,
   },
+  // Scanning state
   scanningContainer: {
     alignItems: 'center',
   },
@@ -525,6 +773,7 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.semibold,
     color: Colors.success,
   },
+  // Results state
   successHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

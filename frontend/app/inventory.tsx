@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, BorderRadius, FontSizes, FontWeights, Shadows } from '../src/constants/theme';
-import { inventoryItems } from '../src/constants/mockData';
+import { inventoryItems as mockInventoryItems } from '../src/constants/mockData';
+import { getInventory, InventoryItem } from '../src/services/storage';
 
 const getStatusStyle = (status: string) => {
   switch (status) {
@@ -46,6 +47,16 @@ export default function InventoryScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(mockInventoryItems);
+
+  useEffect(() => {
+    loadInventory();
+  }, []);
+
+  const loadInventory = async () => {
+    const saved = await getInventory();
+    if (saved.length > 0) setInventoryItems(saved);
+  };
 
   const filteredItems = inventoryItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
