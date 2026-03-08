@@ -18,7 +18,7 @@ BharatBazaar AI is a mobile-first application designed specifically for Indian K
 We have a mobile application for BharatBazaar AI.
 
 - **Repository**: [Bharat Bazaar](https://github.com/m-zest/bharat_bazaar_v2.4.8)
-- **Live Preview**: ([https://d2a5rnm0qdxhtx.cloudfront.net](https://d3j4u51h5o0dhm.cloudfront.net/)
+- **Live Preview**: [https://d2a5rnm0qdxhtx.cloudfront.net](https://d3j4u51h5o0dhm.cloudfront.net/)
 
 ## Features
 
