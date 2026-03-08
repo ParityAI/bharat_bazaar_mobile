@@ -13,6 +13,13 @@
 
 BharatBazaar AI is a mobile-first application designed specifically for Indian Kirana (retail) store owners. It leverages AI to simplify day-to-day operations like inventory tracking, bill scanning, invoice generation, and pricing management — all from a single app.
 
+## Web App
+
+We have a mobile application for BharatBazaar AI.
+
+- **Repository**: [Bharat Bazaar](https://github.com/m-zest/bharat_bazaar_v2.4.8)
+- **Live Preview**: ([https://d2a5rnm0qdxhtx.cloudfront.net](https://d3j4u51h5o0dhm.cloudfront.net/)
+
 ## Features
 
 - **AI Bill Scanner** — Scan wholesale bills using the device camera to auto-update inventory
