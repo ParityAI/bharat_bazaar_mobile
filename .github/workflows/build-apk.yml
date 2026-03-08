@@ -30,8 +30,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'yarn'
-          cache-dependency-path: frontend/yarn.lock
 
       - name: Setup EAS CLI
         uses: expo/expo-github-action@v8
@@ -40,7 +38,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
 
       - name: Build APK
         run: eas build --platform android --profile preview --non-interactive --output ./bharat-bazaar-ai.apk
@@ -118,11 +116,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'yarn'
-          cache-dependency-path: frontend/yarn.lock
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
 
       - name: Build web export
         run: npx expo export --platform web
