@@ -183,6 +183,14 @@ export default function AuthScreen() {
           </View>
           <Text style={styles.appTitle}>BharatBazaar AI</Text>
           <Text style={styles.appTitleHindi}>भारत बाज़ार AI</Text>
+
+          {/* Prototype Notice for Judges */}
+          <View style={styles.prototypeBadge}>
+            <Ionicons name="phone-portrait-outline" size={14} color={Colors.textWhite} />
+            <Text style={styles.prototypeBadgeText}>
+              Native Mobile App — deployed as web prototype for demo
+            </Text>
+          </View>
         </View>
 
         {/* Form */}
@@ -354,6 +362,14 @@ export default function AuthScreen() {
             />
           ))}
         </View>
+
+        {/* App Store Notice */}
+        <View style={styles.appStoreNotice}>
+          <Ionicons name="information-circle-outline" size={16} color="rgba(255,255,255,0.7)" />
+          <Text style={styles.appStoreNoticeText}>
+            Built with React Native + Expo — planning App Store & Play Store release if selected
+          </Text>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -390,6 +406,23 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xl,
     color: 'rgba(255,255,255,0.8)',
     marginTop: 4,
+  },
+  prototypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    marginTop: Spacing.sm,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  prototypeBadgeText: {
+    fontSize: FontSizes.xs,
+    color: Colors.textWhite,
+    fontWeight: FontWeights.medium,
   },
   formSection: {
     flex: 1,
@@ -599,5 +632,19 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: FontWeights.bold,
     color: Colors.textWhite,
+  },
+  appStoreNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    gap: 6,
+    backgroundColor: Colors.primary,
+  },
+  appStoreNoticeText: {
+    fontSize: FontSizes.xs,
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
   },
 });
