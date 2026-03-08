@@ -120,7 +120,7 @@ This project is under active development. Contributions, issues, and feature req
 
 ## Author
 
-**Mohammad Zeeshan** — [hdglit@inf.elte.hu](mailto:hdglit@inf.elte.hu)
+**Mohammad Zeeshan** — [zeeshanm8313@gmail.com](mailto:zeeshanm8313@gmail.com)
 
 ## License
 
