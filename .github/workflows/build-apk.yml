@@ -1,0 +1,134 @@
+name: Build APK & Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0-beta'
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build APK
+        run: eas build --platform android --profile preview --non-interactive --output ./bharat-bazaar-ai.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bharat-bazaar-ai-apk
+          path: frontend/bharat-bazaar-ai.apk
+
+      - name: Get release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.release_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "BharatBazaar AI ${{ steps.tag.outputs.tag }}"
+          body: |
+            ## BharatBazaar AI - Smart Kirana Store Management 🏪
+
+            AI-powered inventory & billing app for Indian Kirana store owners.
+            Built with **React Native + Expo** — runs natively on Android & iOS.
+
+            ### ✨ Features
+            - 📸 **AI Bill Scanner** — Scan wholesale bills with camera to auto-update inventory
+            - 📊 **Smart Inventory** — Track stock levels, get low-stock alerts
+            - 🧾 **Invoice Generator** — Create GST-compliant invoices instantly
+            - 🤖 **Munim-ji AI Assistant** — Voice-enabled AI helper for store operations
+            - 📱 **Works Offline** — Full functionality without internet
+            - 🇮🇳 **Made for India** — Hindi/English, UPI-ready, GST-compliant
+
+            ### 📱 Installation
+            1. Download `bharat-bazaar-ai.apk` below
+            2. Enable "Install from unknown sources" on your Android device
+            3. Install and open the app
+            4. Use **Quick Demo Login** or phone: `9876543210`, OTP: `123456`
+
+            ### 🌐 Web Demo
+            Try the web prototype: [Live Demo](https://bharat-bazaar-mobile.vercel.app)
+
+            ### 🛠 Tech Stack
+            - React Native 0.81 + Expo SDK 54
+            - TypeScript
+            - AsyncStorage for local persistence
+            - expo-camera for bill scanning
+            - Expo Router for navigation
+
+            ---
+            *Built for Hackathon — planning App Store & Play Store release*
+          files: frontend/bharat-bazaar-ai.apk
+          draft: false
+          prerelease: ${{ contains(steps.tag.outputs.tag, 'beta') || contains(steps.tag.outputs.tag, 'alpha') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-web:
+    name: Build Web Export
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build web export
+        run: npx expo export --platform web
+
+      - name: Upload web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: frontend/dist
